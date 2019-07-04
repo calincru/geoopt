@@ -4,3 +4,4 @@ from .stiefel import Stiefel, EuclideanStiefel, CanonicalStiefel, EuclideanStief
 from .sphere import Sphere, SphereExact
 from .poincare import PoincareBall, PoincareBallExact
 from . import poincare
+from .spd import SymmetricPositiveDefinite
