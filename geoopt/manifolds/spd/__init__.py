@@ -46,19 +46,20 @@ class SymmetricPositiveDefinite(Manifold):
         # tensordot on the last two axes; more compact than matmul + sum
         return torch.einsum("...ij,...jk->...", x_inv_u, x_inv_v)
 
-    # TODO(ccruceru): Maybe use the pymanopt implementation of the norm if the
-    # solve() above really proves problematic.
+    # TODO(ccruceru): Maybe use the alternative implementation of the norm if
+    # the solve() above really proves problematic (see pymanopt).
 
     def proju(self, x, u):
         return 0.5 * (u + multitrans(u))
 
     def projx(self, x):
+        # symmetrize it and then clamp its eigenvalues
         return multi_apply_on_sym(multisym(x), lambda W: torch.clamp(W, min=0))
 
     def expmap(self, x, u):
         l = torch.cholesky(x)
         l_inv = torch.inv(l)
-        a = multiAXAt(l_inv, y_inv)
+        a = multiAXAt(l_inv, u)
         expa = multiexp(a)
         expx_y = multiAXAt(l, expa)
 
@@ -67,13 +68,14 @@ class SymmetricPositiveDefinite(Manifold):
     def logmap(self, x, y):
         l = torch.cholesky(x)
         l_inv = torch.inv(l)
-        a = multiAXAt(l_inv, y_inv)
+        a = multiAXAt(l_inv, y)
         loga = multilog(a)
         logx_y = multiAXAt(l, loga)
 
         return logx_y
 
     def retr(self, x, u):
+        # TODO(ccruceru): Maybe symmetrize for numerical stability.
         return x + u + 0.5 * torch.matmul(u, torch.solve(x, u))
 
     def dist(self, x, y, *, keepdim=False, squared=False):
@@ -81,7 +83,7 @@ class SymmetricPositiveDefinite(Manifold):
         l_inv = torch.cholesky(l)
         a = multiAXAt(l_inv, y_inv)
         loga = multilog(a)
-        sq_dist = (loga ** 2).sum((-2, -1))
+        sq_dist = (loga ** 2).sum((-2, -1))  # trace on last two dimensions
 
         return sq_dist if squared else torch.sqrt(sq_dist)
 
@@ -92,10 +94,10 @@ class SymmetricPositiveDefinite(Manifold):
         return v
 
     def par_transp(self, x, y, v):
-        r"""The actual parallel transport. Much more expensive, and it seem
+        r"""The actual parallel transport. Much more expensive, and it seems
         that most other libraries use the one from above.
         """
-        y_x_inv = multitrans(torch.solve(multitrans(x), multitrans(y)))
+        y_x_inv = multitrans(torch.solve(multitrans(x), multitrans(y)))  # y/x
         l = torch.cholesky(y_x_inv)
         vs = multiAXAt(l, v)
 
