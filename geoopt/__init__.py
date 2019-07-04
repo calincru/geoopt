@@ -16,6 +16,7 @@ from .manifolds import (
     SphereExact,
     PoincareBall,
     PoincareBallExact,
+    SymmetricPositiveDefinite,
 )
 
 __version__ = "0.0.1"
