@@ -13,7 +13,7 @@ class SymmetricPositiveDefinite(Manifold):
     ndim = 2
     reversible = False
 
-    def _check_point_on_mainfold(self, x, *, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         ok = torch.allclose(x, multitrans(x), atol=atol, rtol=rtol)
         if not ok:
             return (
