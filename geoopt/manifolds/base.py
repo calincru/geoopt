@@ -333,7 +333,6 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
     def expmap_transp(self, x, u, v, *more):
         """
         Perform an exponential map from point :math:`x` with
@@ -364,7 +363,6 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         vs = self.transp(x, y, v, *more)
         return (y,) + make_tuple(vs)
 
-    @abc.abstractmethod
     def transp_follow_retr(self, x, u, v, *more):
         """
         Perform vector transport from point :math:`x` for vector :math:`v` following a
@@ -388,9 +386,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         tensor or tuple of tensors
             transported tensor(s)
         """
-        raise NotImplementedError
+        y = self.retr(x, u)
+        return self.transp(x, y, v, *more)
 
-    @abc.abstractmethod
     def transp_follow_expmap(self, x, u, v, *more):
         """
         Perform vector transport from point :math:`x` for vector :math:`v` following a
@@ -414,7 +412,8 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         tensor or tuple of tensors
             transported tensor(s)
         """
-        raise NotImplementedError
+        y = self.expmap(x, u)
+        return self.transp(x, y, v, *more)
 
     def transp(self, x, y, v, *more):
         """
@@ -540,7 +539,6 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
     def retr_transp(self, x, u, v, *more):
         """
         Perform a retraction + vector transport at once
