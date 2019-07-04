@@ -30,7 +30,7 @@ _sphere_doc = r"""
 
 class Sphere(Manifold):
     __doc__ = r"""{}
-    
+
     See Also
     --------
     :class:`SphereExact`
@@ -230,7 +230,7 @@ class SphereExact(Sphere):
     See Also
     --------
     :class:`Sphere`
-    
+
     Notes
     -----
     The implementation of retraction is an exact exponential map, this retraction will be used in optimization

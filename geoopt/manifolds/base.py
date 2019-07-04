@@ -1,5 +1,6 @@
 import abc
 import torch.nn
+from ..utils import make_tuple
 
 __all__ = ["Manifold"]
 
@@ -359,7 +360,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         By default, no error is raised if exponential map is not implemented. If so,
         the best approximation to exponential map is applied instead.
         """
-        raise NotImplementedError
+        y = self.expmap(x, u)
+        vs = self.transp(x, y, v, *more)
+        return (y,) + make_tuple(vs)
 
     @abc.abstractmethod
     def transp_follow_retr(self, x, u, v, *more):
@@ -565,7 +568,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         -----
         Sometimes this is a far more optimal way to preform retraction + vector transport
         """
-        raise NotImplementedError
+        y = self.retr(x, u)
+        vs = self.transp(x, y, v, *more)
+        return (y,) + make_tuple(vs)
 
     def _check_shape(self, shape, name):
         """
