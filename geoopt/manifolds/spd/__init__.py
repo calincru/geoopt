@@ -58,7 +58,7 @@ class SymmetricPositiveDefinite(Manifold):
 
     def expmap(self, x, u):
         l = torch.cholesky(x)
-        l_inv = torch.inv(l)
+        l_inv = torch.inverse(l)
         a = multiAXAt(l_inv, u)
         expa = multiexp(a)
         expx_y = multiAXAt(l, expa)
@@ -67,7 +67,7 @@ class SymmetricPositiveDefinite(Manifold):
 
     def logmap(self, x, y):
         l = torch.cholesky(x)
-        l_inv = torch.inv(l)
+        l_inv = torch.inverse(l)
         a = multiAXAt(l_inv, y)
         loga = multilog(a)
         logx_y = multiAXAt(l, loga)
