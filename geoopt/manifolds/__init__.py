@@ -5,3 +5,4 @@ from .sphere import Sphere, SphereExact
 from .poincare import PoincareBall, PoincareBallExact
 from . import poincare
 from .spd import SymmetricPositiveDefinite
+from . import spd

@@ -54,7 +54,7 @@ class SymmetricPositiveDefinite(Manifold):
 
     def projx(self, x):
         # symmetrize it and then clamp its eigenvalues
-        return multi_apply_on_sym(multisym(x), lambda W: torch.clamp(W, min=0))
+        return multisymapply(multisym(x), lambda W: torch.clamp(W, min=0))
 
     def expmap(self, x, u):
         l = torch.cholesky(x)
@@ -83,7 +83,7 @@ class SymmetricPositiveDefinite(Manifold):
         l_inv = torch.cholesky(l)
         a = multiAXAt(l_inv, y_inv)
         loga = multilog(a)
-        sq_dist = (loga ** 2).sum((-2, -1))  # trace on last two dimensions
+        sq_dist = loga.pow(2).sum((-2, -1))  # trace on last two dimensions
 
         return sq_dist if squared else torch.sqrt(sq_dist)
 
