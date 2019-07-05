@@ -74,8 +74,8 @@ class SymmetricPositiveDefinite(Manifold):
         return logx_y
 
     def retr(self, x, u):
-        # TODO(ccruceru): Maybe symmetrize for numerical stability.
-        return x + u + 0.5 * torch.matmul(u, torch.solve(u, x)[0])
+        # The symmetrization is for numerical stability only.
+        return multisym(x + u + 0.5 * torch.matmul(u, torch.solve(u, x)[0]))
 
     def dist(self, x, y, *, keepdim=False, squared=False):
         l = torch.cholesky(x)
