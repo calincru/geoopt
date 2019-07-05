@@ -38,11 +38,11 @@ class SymmetricPositiveDefinite(Manifold):
         return True, None
 
     def inner(self, x, u, v=None, *, keepdim=False):
-        x_inv_u = torch.solve(x, u)
+        x_inv_u = torch.solve(x, u)[0]
         if v is None:
             x_inv_v = x_inv_u
         else:
-            x_inv_v = torch.solve(x, v)
+            x_inv_v = torch.solve(x, v)[0]
         return torch.matmul(x_inv_u, x_inv_v).sum((-2, -1), keepdim=keepdim)
 
     # TODO(ccruceru): Maybe use the alternative implementation of the norm if
