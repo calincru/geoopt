@@ -43,8 +43,7 @@ class SymmetricPositiveDefinite(Manifold):
             x_inv_v = x_inv_u
         else:
             x_inv_v = torch.solve(x, v)
-        # tensordot on the last two axes; more compact than matmul + sum
-        return torch.einsum("...ij,...jk->...", x_inv_u, x_inv_v)
+        return torch.matmul(x_inv_u, x_inv_v).sum((-2, -1), keepdim=keepdim)
 
     # TODO(ccruceru): Maybe use the alternative implementation of the norm if
     # the solve() above really proves problematic (see pymanopt).
@@ -83,7 +82,7 @@ class SymmetricPositiveDefinite(Manifold):
         l_inv = torch.cholesky(l)
         a = multiAXAt(l_inv, y_inv)
         loga = multilog(a)
-        sq_dist = loga.pow(2).sum((-2, -1))  # trace on last two dimensions
+        sq_dist = loga.pow(2).sum((-2, -1), keepdim=keepdim)  # batched trace
 
         return sq_dist if squared else torch.sqrt(sq_dist)
 
@@ -93,7 +92,7 @@ class SymmetricPositiveDefinite(Manifold):
     def transp(self, x, y, v, *more):
         return v
 
-    def par_transp(self, x, y, v):
+    def ptransp(self, x, y, v):
         r"""The actual parallel transport. Much more expensive, and it seems
         that most other libraries use the one from above.
         """
