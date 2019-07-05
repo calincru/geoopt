@@ -76,7 +76,7 @@ class SymmetricPositiveDefinite(Manifold):
 
     def retr(self, x, u):
         # TODO(ccruceru): Maybe symmetrize for numerical stability.
-        return x + u + 0.5 * torch.matmul(u, torch.solve(x, u))
+        return x + u + 0.5 * torch.matmul(u, torch.solve(u, x)[0])
 
     def dist(self, x, y, *, keepdim=False, squared=False):
         l = torch.cholesky(x)
@@ -97,7 +97,7 @@ class SymmetricPositiveDefinite(Manifold):
         r"""The actual parallel transport. Much more expensive, and it seems
         that most other libraries use the one from above.
         """
-        y_x_inv = multitrans(torch.solve(multitrans(x), multitrans(y)))  # y/x
+        y_x_inv = multitrans(torch.solve(multitrans(y), multitrans(x))[0])  # y/x
         l = torch.cholesky(y_x_inv)
         vs = multiAXAt(l, v)
 
