@@ -53,7 +53,7 @@ class SymmetricPositiveDefinite(Manifold):
 
     def projx(self, x):
         # symmetrize it and then clamp its eigenvalues
-        return multisymapply(multisym(x), lambda W: torch.clamp(W, min=0))
+        return multisymapply(multisym(x), lambda W: torch.clamp(W, min=1e-5))
 
     def expmap(self, x, u):
         l = torch.cholesky(x)
