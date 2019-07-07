@@ -48,6 +48,8 @@ class SymmetricPositiveDefinite(Manifold):
     # TODO(ccruceru): Maybe use the alternative implementation of the norm if
     # the solve() above really proves problematic (see pymanopt).
 
+    # TODO(ccruceru): Maybe use cholesky_solve.
+
     def proju(self, x, u):
         return 0.5 * (u + multitrans(u))
 
