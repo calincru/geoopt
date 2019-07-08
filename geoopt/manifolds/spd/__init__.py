@@ -81,7 +81,7 @@ class SymmetricPositiveDefinite(Manifold):
 
     def dist(self, x, y, *, keepdim=False, squared=False):
         l = torch.cholesky(x)
-        l_inv = torch.cholesky(l)
+        l_inv = torch.inverse(l)
         a = multiAXAt(l_inv, y_inv)
         loga = multilog(a)
         sq_dist = loga.pow(2).sum((-2, -1), keepdim=keepdim)  # batched trace
