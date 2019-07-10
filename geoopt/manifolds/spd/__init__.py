@@ -97,7 +97,7 @@ class SymmetricPositiveDefinite(Manifold):
         # need to compute :math:`X + U + \frac{1}{2} U X^{-1} U`
         # the product is computed as:
         #       U X^{-1} U = U (L L^t)^{-1} U = (L^{-1} U)^t (L^{-1} U)
-        l = torch.cholesky()
+        l = torch.cholesky(x)
         l_inv_u = torch.triangular_solve(u, l, upper=False)
         y = torch.matmul(multitrans(l_inv_u), l_inv_u)
 
