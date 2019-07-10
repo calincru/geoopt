@@ -17,7 +17,6 @@ class SymmetricPositiveDefinite(Manifold):
         self.wmin = wmin
         self.wmax = wmax
         self.requires_grad = requires_grad
-        self.inner = self._inner if self.requires_grad else self._inner_no_grad
 
     def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         ok = torch.allclose(x, multitrans(x), atol=atol, rtol=rtol)
@@ -62,6 +61,10 @@ class SymmetricPositiveDefinite(Manifold):
             x_inv_v = torch.solve(v, x)[0]
         return torch.matmul(x_inv_u, x_inv_v).sum((-2, -1), keepdim=keepdim)
 
+    def inner(self, x, u, v=None, *, keepdim=False):
+        inner_fn = self._inner if self.requires_grad else self._inner_no_grad
+        return inner_fn(x, u, v=v, keepdim=keepdim)
+
     # TODO(ccruceru): Maybe use the alternative implementation of the norm if
     # the solve() above really proves problematic (see pymanopt).
 
@@ -91,8 +94,14 @@ class SymmetricPositiveDefinite(Manifold):
         return logx_y
 
     def retr(self, x, u):
-        # the symmetrization is for numerical stability only
-        return multisym(x + u + 0.5 * torch.matmul(u, torch.solve(u, x)[0]))
+        # need to compute :math:`X + U + \frac{1}{2} U X^{-1} U`
+        # the product is computed as:
+        #       U X^{-1} U = U (L L^t)^{-1} U = (L^{-1} U)^t (L^{-1} U)
+        l = torch.cholesky()
+        l_inv_u = torch.triangular_solve(u, l, upper=False)
+        y = torch.matmul(multitrans(l_inv_u), l_inv_u)
+
+        return y
 
     def dist(self, x, y, *, keepdim=False, squared=False):
         l = torch.cholesky(x)
