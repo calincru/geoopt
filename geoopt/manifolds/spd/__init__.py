@@ -13,9 +13,11 @@ class SymmetricPositiveDefinite(Manifold):
     ndim = 2
     reversible = False
 
-    def __init__(self, eps=1e-8, requires_grad=False):
-        self.eps = eps
+    def __init__(self, wmin=1e-8, wmax=1e8, requires_grad=False):
+        self.wmin = wmin
+        self.wmax = wmax
         self.requires_grad = requires_grad
+        self.inner = self._inner if self.requires_grad else self._inner_no_grad
 
     def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         ok = torch.allclose(x, multitrans(x), atol=atol, rtol=rtol)
@@ -25,10 +27,10 @@ class SymmetricPositiveDefinite(Manifold):
                 "The matrix is not symmetric with atol={}, rtol={}".format(atol, rtols),
             )
         w, _ = torch.symeig(x)
-        if not all(w > atol):
+        if not all(w > self.wmin):
             return (
                 False,
-                "The matrix is not positive definite with atol={}".format(atol),
+                "The matrix is not positive definite with atol={}".format(self.wmin),
             )
         return True, None
 
@@ -60,11 +62,6 @@ class SymmetricPositiveDefinite(Manifold):
             x_inv_v = torch.solve(v, x)[0]
         return torch.matmul(x_inv_u, x_inv_v).sum((-2, -1), keepdim=keepdim)
 
-    def inner(self, x, u, v=None, *, keepdim=False):
-        if self.requires_grad:
-            return self._inner(x, u, v, keepdim=keepdim)
-        return self._inner_no_grad(x, u, v, keepdim=keepdim)
-
     # TODO(ccruceru): Maybe use the alternative implementation of the norm if
     # the solve() above really proves problematic (see pymanopt).
 
@@ -73,7 +70,7 @@ class SymmetricPositiveDefinite(Manifold):
 
     def projx(self, x):
         # symmetrize it and then clamp its eigenvalues
-        return multisymapply(multisym(x), lambda W: torch.clamp(W, min=self.eps))
+        return multispdproj(x, wmin=self.wmin, wmax=self.wmax)
 
     def expmap(self, x, u):
         l = torch.cholesky(x)
@@ -102,7 +99,7 @@ class SymmetricPositiveDefinite(Manifold):
         l_inv = torch.inverse(l)
         a = multiAXAt(l_inv, y)
         w, _ = torch.symeig(a, eigenvectors=self.requires_grad)
-        w.data.clamp_(min=self.eps)
+        w.data.clamp_(min=self.wmin, max=self.wmax)
         sq_dist = w.log().pow(2).sum(-1, keepdim=keepdim)
 
         return sq_dist if squared else torch.sqrt(sq_dist)

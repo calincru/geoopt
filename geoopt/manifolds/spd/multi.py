@@ -21,38 +21,46 @@ def multihgie(W, V):
     return torch.einsum("...ij,...j,...kj->...ik", V, W, V)
 
 
-def multisymapply(X, f, posdef=False, eps=1e-8):
+def multisymapply(X, f, *, wmin=None, wmax=None):
     r"""Template function acting on stacked symmetric matrices that applies a
     given analytic function on them via eigenvalue decomposition.
     """
     assert torch.allclose(X, multitrans(X))
     W, V = torch.symeig(X, eigenvectors=True)
-    if posdef:
-        W.data.clamp_(min=eps)
+    if wmin or wmax:
+        W.data.clamp_(min=wmin, max=wmax)
     W = f(W)
     X_new = multihgie(W, V)
 
     return X_new
 
 
-def multilog(X, eps=1e-8):
+def multispdproj(X, *, wmin=None, wmax=None):
+    r"""Projects a batch of matrices onto the space of SPD matrices."""
+    if not wmin and not wmax:
+        raise ValueError("At least one of `wmin` and `wmax` must be given.")
+
+    return multisymapply(multisym(X), lambda W: W, wmin=wmin, wmax=wmax)
+
+
+def multilog(X, *, wmin=None, wmax=None):
     r"""Computes the matrix-logarithm of several positive definite matrices at
     once.
     """
-    return multisymapply(X, torch.log, posdef=True, eps=eps)
+    return multisymapply(X, torch.log, wmin=wmin, wmax=wmax)
 
 
-def multiexp(X):
+def multiexp(X, *, wmin=None, wmax=None):
     r"""Computes the matrix-exponential of several symmetric matrices at once.
     """
-    return multisymapply(X, torch.exp, posdef=False)
+    return multisymapply(X, torch.exp, wmin=wmin, wmax=wmax)
 
 
-def multisqrt(X, eps=1e-8):
+def multisqrt(X, *, wmin=None, wmax=None):
     r"""Computes the matrix square root of several positive definite matrices at
     once.
     """
-    return multisymapply(X, torch.sqrt, posdef=True, eps=eps)
+    return multisymapply(X, torch.sqrt, wmin=wmin, wmax=wmax)
 
 
 def multiAXAt(A, X):
