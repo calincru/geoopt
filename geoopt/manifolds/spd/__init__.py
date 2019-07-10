@@ -13,6 +13,10 @@ class SymmetricPositiveDefinite(Manifold):
     ndim = 2
     reversible = False
 
+    def __init__(self, eps=1e-8, requires_grad=False):
+        self.eps = eps
+        self.requires_grad = requires_grad
+
     def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         ok = torch.allclose(x, multitrans(x), atol=atol, rtol=rtol)
         if not ok:
@@ -37,7 +41,18 @@ class SymmetricPositiveDefinite(Manifold):
             )
         return True, None
 
-    def inner(self, x, u, v=None, *, keepdim=False):
+    def _inner_no_grad(self, x, u, v=None, *, keepdim=False):
+        l = torch.cholesky(x)
+        x_inv_u = torch.cholesky_solve(u, l)
+        if v is None:
+            x_inv_v = x_inv_u
+        else:
+            x_inv_v = torch.cholesky_solve(v, l)
+        return torch.matmul(x_inv_u, x_inv_v).sum((-2, -1), keepdim=keepdim)
+
+    def _inner(self, x, u, v=None, *, keepdim=False):
+        # TODO(ccruceru): Get rid of it once the derivative of
+        # `torch.cholesky_solve` is implemented.
         x_inv_u = torch.solve(u, x)[0]
         if v is None:
             x_inv_v = x_inv_u
@@ -45,17 +60,20 @@ class SymmetricPositiveDefinite(Manifold):
             x_inv_v = torch.solve(v, x)[0]
         return torch.matmul(x_inv_u, x_inv_v).sum((-2, -1), keepdim=keepdim)
 
+    def inner(self, x, u, v=None, *, keepdim=False):
+        if self.requires_grad:
+            return self._inner(x, u, v, keepdim=keepdim)
+        return self._inner_no_grad(x, u, v, keepdim=keepdim)
+
     # TODO(ccruceru): Maybe use the alternative implementation of the norm if
     # the solve() above really proves problematic (see pymanopt).
-
-    # TODO(ccruceru): Maybe use cholesky_solve.
 
     def proju(self, x, u):
         return 0.5 * (u + multitrans(u))
 
     def projx(self, x):
         # symmetrize it and then clamp its eigenvalues
-        return multisymapply(multisym(x), lambda W: torch.clamp(W, min=1e-5))
+        return multisymapply(multisym(x), lambda W: torch.clamp(W, min=self.eps))
 
     def expmap(self, x, u):
         l = torch.cholesky(x)
@@ -76,15 +94,16 @@ class SymmetricPositiveDefinite(Manifold):
         return logx_y
 
     def retr(self, x, u):
-        # The symmetrization is for numerical stability only.
+        # the symmetrization is for numerical stability only
         return multisym(x + u + 0.5 * torch.matmul(u, torch.solve(u, x)[0]))
 
     def dist(self, x, y, *, keepdim=False, squared=False):
         l = torch.cholesky(x)
         l_inv = torch.inverse(l)
         a = multiAXAt(l_inv, y)
-        loga = multilog(a)
-        sq_dist = loga.pow(2).sum((-2, -1), keepdim=keepdim)  # batched trace
+        w, _ = torch.symeig(a, eigenvectors=self.requires_grad)
+        w.data.clamp_(min=self.eps)
+        sq_dist = w.log().pow(2).sum(-1, keepdim=keepdim)
 
         return sq_dist if squared else torch.sqrt(sq_dist)
 
@@ -95,17 +114,17 @@ class SymmetricPositiveDefinite(Manifold):
         return v
 
     def ptransp(self, x, y, v):
-        r"""The actual parallel transport. Much more expensive, and it seems
-        that most other libraries use the one from above.
+        r"""The actual parallel transport. Use it as follows in optimizers:
+
+        .. py::
+            spd = geoopt.SymmetricPositiveDefinite()
+            spd.transp = spd.ptransp
         """
-        y_x_inv = multitrans(torch.solve(multitrans(y), multitrans(x))[0])  # y/x
-        l = torch.cholesky(y_x_inv)
-        vs = multiAXAt(l, v)
-
-        return vs
-
-    # TODO(ccruceru): Consider if the combined {expmap,retr}_transp methods do
-    # improve if we instead use the real parallel transport function.
+        # TODO(ccruceru): Requires matrix square root. See
+        # https://github.com/pytorch/pytorch/issues/9983.
+        # TODO(ccruceru): Consider if the combined {expmap,retr}_transp methods
+        # do improve if we instead use the real parallel transport function.
+        raise NotImplementedError
 
     def egrad2rgrad(self, x, u):
         return multiAXAt(x, multisym(u))
