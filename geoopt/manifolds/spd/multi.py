@@ -25,7 +25,7 @@ def multisymapply(X, f, posdef=False, eps=1e-8):
     r"""Template function acting on stacked symmetric matrices that applies a
     given analytic function on them via eigenvalue decomposition.
     """
-    assert torch.allclose(X, X.T)
+    assert torch.allclose(X, multitrans(X))
     W, V = torch.symeig(X, eigenvectors=True)
     if posdef:
         W.data.clamp_(min=eps)
