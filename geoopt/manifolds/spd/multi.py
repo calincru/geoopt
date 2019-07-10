@@ -25,7 +25,6 @@ def multisymapply(X, f, *, wmin=None, wmax=None):
     r"""Template function acting on stacked symmetric matrices that applies a
     given analytic function on them via eigenvalue decomposition.
     """
-    assert torch.allclose(X, multitrans(X))
     W, V = torch.symeig(X, eigenvectors=True)
     if wmin or wmax:
         W.data.clamp_(min=wmin, max=wmax)
