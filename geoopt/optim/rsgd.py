@@ -17,7 +17,7 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
     params : iterable
         iterable of parameters to optimize or dicts defining
         parameter groups
-    lr : float
+    lr : float (default: 1e-3)
         learning rate
     momentum : float (optional)
         momentum factor (default: 0)
@@ -38,14 +38,14 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
     def __init__(
         self,
         params,
-        lr,
+        lr=1e-3,
         momentum=0,
         dampening=0,
         weight_decay=0,
         nesterov=False,
         stabilize=None,
     ):
-        if lr < 0.0:
+        if not all(isinstance(g, dict) and 'lr' in g for g in params) and lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if momentum < 0.0:
             raise ValueError("Invalid momentum value: {}".format(momentum))
