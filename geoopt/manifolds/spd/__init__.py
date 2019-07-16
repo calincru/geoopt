@@ -49,7 +49,8 @@ class SymmetricPositiveDefinite(Manifold):
             x_inv_v = x_inv_u
         else:
             x_inv_v = torch.cholesky_solve(v, l)
-        return torch.matmul(x_inv_u, x_inv_v).sum((-2, -1), keepdim=keepdim)
+        prod = torch.matmul(x_inv_u, x_inv_v)
+        return prod.diagona(dim1=-2, dim2=-1).sum(-1, keepdim=keepdim)
 
     def _inner(self, x, u, v=None, *, keepdim=False):
         # TODO(ccruceru): Get rid of it once the derivative of
@@ -59,7 +60,8 @@ class SymmetricPositiveDefinite(Manifold):
             x_inv_v = x_inv_u
         else:
             x_inv_v = torch.solve(v, x)[0]
-        return torch.matmul(x_inv_u, x_inv_v).sum((-2, -1), keepdim=keepdim)
+        prod = torch.matmul(x_inv_u, x_inv_v)
+        return prod.diagona(dim1=-2, dim2=-1).sum(-1, keepdim=keepdim)
 
     def inner(self, x, u, v=None, *, keepdim=False):
         inner_fn = self._inner if self.requires_grad else self._inner_no_grad
