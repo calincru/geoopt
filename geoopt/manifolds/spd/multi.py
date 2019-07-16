@@ -14,6 +14,12 @@ def multisym(X):
     return 0.5 * (X + multitrans(X))
 
 
+def multitrace(X, keepdim=False):
+    r"""Returns the traces of a batch of matrices."""
+    traces = X.diagonal(dim1=-2, dim2=-1).sum(-1)
+    return traces.view(-1, 1, 1) if keepdim else traces
+
+
 def multihgie(W, V):
     r"""The inverse of :py:`torch.symeig` for stacked matrices. The name "hgie"
     is simply the string "eigh" reversed.
